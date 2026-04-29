@@ -17,6 +17,7 @@
 // Personal fork notes:
 //   - includeExporterMetrics defaults to true so process/go metrics are always collected
 //   - maxRequests default increased to 80 for my higher-traffic environment
+//   - added startup log message with hostname for easier identification in multi-node setups
 package main
 
 import (
@@ -82,14 +83,12 @@ func (h *handler) innerHandler(filters ...string) (http.Handler, error) {
 	if len(filters) == 0 {
 		level.Info(h.logger).Log("msg", "Starting node_exporter", "version", version.Info())
 		level.Info(h.logger).Log("msg", "Build context", "build_context", version.BuildContext())
+		// Log hostname to make it easier to identify this node in aggregated logs
+		if hostname, err := os.Hostname(); err == nil {
+			level.Info(h.logger).Log("msg", "Running on host", "hostname", hostname)
+		}
 	}
 
 	r := prometheus.NewRegistry()
 	r.MustRegister(version.NewCollector("node_exporter"))
-	if err := r.Register(nc); err != nil {
-		return nil, fmt.Errorf("couldn't register node collector: %s", err)
-	}
-
-	var handler http.Handler
-	if h.includeExporterMetrics {
-		handler = promhttp.HandlerF
+	if er
