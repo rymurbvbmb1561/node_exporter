@@ -18,6 +18,7 @@
 //   - includeExporterMetrics defaults to true so process/go metrics are always collected
 //   - maxRequests default increased to 80 for my higher-traffic environment
 //   - added startup log message with hostname for easier identification in multi-node setups
+//   - log both version info and build context at startup even when filters are applied
 package main
 
 import (
@@ -80,15 +81,9 @@ func (h *handler) innerHandler(filters ...string) (http.Handler, error) {
 		return nil, fmt.Errorf("couldn't create collector: %s", err)
 	}
 
+	// Always log version and build context at startup, regardless of whether
+	// filters are applied. Helpful when tailing logs across multiple nodes.
 	if len(filters) == 0 {
 		level.Info(h.logger).Log("msg", "Starting node_exporter", "version", version.Info())
 		level.Info(h.logger).Log("msg", "Build context", "build_context", version.BuildContext())
-		// Log hostname to make it easier to identify this node in aggregated logs
-		if hostname, err := os.Hostname(); err == nil {
-			level.Info(h.logger).Log("msg", "Running on host", "hostname", hostname)
-		}
-	}
-
-	r := prometheus.NewRegistry()
-	r.MustRegister(version.NewCollector("node_exporter"))
-	if er
+		
